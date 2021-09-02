@@ -115,21 +115,24 @@ char cstring_test()
 
 char* cstring_new(TLint size)
 {
-	char* str = calloc(size + 1, sizeof(char));
+	size++;
+	char* str = calloc(size , sizeof(char));
 	assert(str);
 	return str;
 }
 
 TLint cstring_count(char* str)
 {
-	assert(str);
-	for (TLint i = 0; ; i++)
-	{
-		if (str[i] == 0)
+	if (str) {
+		for (TLint i = 0; ; i++)
 		{
-			return i;
+			if (str[i] == 0)
+			{
+				return i;
+			}
 		}
 	}
+	else assert(str);
 	return 0;
 }
 
@@ -207,19 +210,19 @@ void TArray_test()
 	print_yellow("TArray_size>>>>>\n");
 	print_yellow("TArray_count>>>>>\n");
 	TArray_init_v1(arr,2);
-	res = (arr->data != 0) && (TArray_size(arr) == 2) &&
+	if(arr) res = (arr->data != 0) && (TArray_size(arr) == 2) &&
 		(TArray_count(arr) == 0);
 	print_yellow("TArray_add>>>>>\n");
 	TArray_add(arr, cstring_clone("0"));
 	TArray_add(arr, cstring_clone("1"));
-	res = (arr->data != 0) && (TArray_size(arr) == 2) &&
+	if (arr) res = (arr->data != 0) && (TArray_size(arr) == 2) &&
 		(TArray_count(arr) == 2);
 	TArray_add(arr, cstring_clone("2"));
-	res = res * (arr->data != 0) && (TArray_size(arr) == 4) &&
+	if (arr) res = res * (arr->data != 0) && (TArray_size(arr) == 4) &&
 		(TArray_count(arr) == 3);
 	TArray_add(arr, cstring_clone("3"));
 	TArray_add(arr, cstring_clone("4"));
-	res = res * (arr->data != 0) && (TArray_size(arr) == 8) &&
+	if (arr) res = res * (arr->data != 0) && (TArray_size(arr) == 8) &&
 		(TArray_count(arr) == 5);
 	test_v1(res);
 	print_yellow("TArray_item_at>>>>>\n");
@@ -321,7 +324,8 @@ TVar TArray_add(TArray* arr, TVar var)
 {
 	if (TArray_count(arr) == TArray_size(arr))
 	{
-		TPtrHld data = (TPtrHld)calloc((arr->size * 2), sizeof(TVar));
+		TLint size = arr->size * 2;
+		TPtrHld data = (TPtrHld)calloc((size), sizeof(TVar));
 		assert(data);
 		if (data)
 		{
@@ -383,10 +387,12 @@ void TString_test()
 TString* TString_new()
 {
 	TString* str = (TString*)malloc(sizeof(TString));
-	assert(str);
-	str->count = 0;
-	//str->size = 0;
-	str->cstring = 0;
+	
+	if (str) {
+		str->count = 0;
+		//str->size = 0;
+		str->cstring = 0;
+	}else assert(str);
 	return str;
 }
 
@@ -423,42 +429,49 @@ void TString_free(TString** str)
 
 TString* TString_clone(TString* str)
 {
-	char* cstring = (char*)malloc(sizeof(char) * (str->count + 1));
-	assert(cstring);
-	for (TLint i = 0; i < str->count; i++)
-	{
-		cstring[i] = str->cstring[i];
+	TLint size = str->count+1; 
+	char* cstring = (char*)malloc(sizeof(char) * size);
+	TString* res = 0;
+	if (cstring) {
+		for (TLint i = 0; i < str->count; i++)
+		{
+			cstring[i] = str->cstring[i];
+		}
+		cstring[str->count] = 0;
+		res = TString_new();
+		res->count = str->count;
+		//res->size = str->size;
+		res->cstring = cstring;
 	}
-	cstring[str->count] = 0;
-	TString* res = TString_new();
-	res->count = str->count;
-	//res->size = str->size;
-	res->cstring = cstring;
+	else assert(cstring);
 	return res;
 	
 }
 
 TString* TString_add(TString* str_src, TString* str_sub)
 {
-	rsize_t count = str_src->count + str_sub->count;
-	char* cstring = (char*)calloc(count+1, sizeof(char));
-	assert(cstring);
-	for (TLint i = 0; i < str_src->count; i++)
-	{
-		cstring[i] = str_src->cstring[i];
-
-	}
-	for (TLint i = str_src->count; i < count; i++)
-	{
-		cstring[i] = str_sub->cstring[i - str_src->count];
-	}
-	free(str_src->cstring);
-	str_src->cstring = cstring;
-	str_src->count = count;
-	//str_src->size = count;
-	return str_src;
+	TLint count = str_src->count + str_sub->count;
+	TLint size = count + 1;
+	char* cstring = (char*)calloc((size), sizeof(char));
 	
-	return NULL;
+	if (cstring) {
+		for (TLint i = 0; i < str_src->count; i++)
+		{
+			cstring[i] = str_src->cstring[i];
+
+		}
+		for (TLint i = str_src->count; i < count; i++)
+		{
+			cstring[i] = str_sub->cstring[i - str_src->count];
+		}
+		free(str_src->cstring);
+		str_src->cstring = cstring;
+		str_src->count = count;
+		//str_src->size = count;
+	}
+	else assert(cstring);
+	return str_src;
+
 }
 
 
@@ -582,10 +595,12 @@ void TStringList_destroy(TStringList** str_l)
 TVariant* TVariant_new()
 {
 	TVariant* var = (TVariant*)malloc(sizeof(TVariant));
-	assert(var);
-	var->name = 0;
-	var->value = 0;
-	var->value_type = -1;
+	if (var) {
+		var->name = 0;
+		var->value = 0;
+		var->value_type = -1;
+	}
+	else assert(var);
 	return var;
 }
 
@@ -615,8 +630,8 @@ TVariant* TVariant_init_cstring(TVariant* var, char* str)
 TVariant* TVariant_init_double(TVariant* var, double f)
 {
 	double* d = (double*)malloc(sizeof(double));
-	assert(d);
-	*d = f;
+	if (d != NULL) { *d = f; }
+	else assert(d);
 	var->value = d;
 	var->value_type = Double;
 	return var;
