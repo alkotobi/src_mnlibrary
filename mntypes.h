@@ -143,16 +143,17 @@ struct  TVariant
 {
     TVar value;
     TTypes value_type;
-    char* name;
-
 };
 typedef struct TVariant TVariant;
 void TVariant_test();
 TVariant* TVariant_new();
-TVariant* TVariant_init(TVariant* var, TVar value, TTypes value_type,char* name);
+TVariant* TVariant_init(TVariant* var, TVar value, TTypes value_type);
 TVariant* TVariant_init_int(TVariant* var, int i);
 TVariant* TVariant_init_cstring(TVariant* var, char* str);
 TVariant* TVariant_init_double(TVariant* var, double f);
+TVariant* TVariant_create_cstring(char* cstring);
+TVariant* TVariant_create_int(int n);
+TVariant* TVariant_create_double( double f);
 int TVariant_int(TVariant* var);
 double TVariant_double(TVariant* var);
 TVar TVariant_value(TVariant* var);
@@ -160,6 +161,9 @@ char* TVariant_cstring(TVariant* var);
 TVariant* TVariant_clean(TVariant** var_hld);
 void TVariant_free(TVariant** var_hld);
 void TVariant_destroy(TVariant** var_hld);
+char TVariant_is_equal(TVariant* var1, TVariant* var2);
+TTypes TVariant_type(TVariant* var);
+TVariant* TVariant_clone(TVariant* var);
 
 /*
                     TField
@@ -169,17 +173,25 @@ struct TField
 {
     TVariant* data;
     char is_generated;
+    char* name;
 };
 typedef struct TField TField;
-
+void TField_test();
 TField* TField_new();
-TField* TField_init(TField* fld, TVariant* var, char is_generated);
+TField* TField_init(TField* fld, TVariant* var, char is_generated,char* name);
 TField* TField_init_int(TField* fld, char* name,int val);
 TField* TField_init_double(TField* fld, char* name, double val);
 TField* TField_init_cstring(TField* fld, char* name, char* val);
+TField* TField_create_int(char* name, int val);
+TField* TField_create_double(char* name, double val);
+TField* TField_create_cstring(char* name, char* val);
 TVariant* TField_data(TField* fld);
 void TField_set_name(TField* fld, char* name);
 char* TField_name(TField* fld);
+char TField_isgenerated(TField* fld);
+void TField_set_generated(TField* fld, char is_generated);
+char TField_is_equal(TField* fld1, TField* fld2);
+TField* TField_clone(TField* fld);
 
 
 /*
@@ -192,6 +204,7 @@ struct TFieldList {
     char is_new;
     char is_deleted;
 };
+void TFieldList_test();
 typedef struct TFieldList TFieldList;
 TFieldList* TFieldList_new();
 TFieldList* TFieldList_init(TFieldList* flds);
@@ -204,6 +217,8 @@ char TFieldList_is_new(TFieldList* flds);
 TField* TFieldList_add(TFieldList* flds, TField* fld);
 TField* TFieldList_item_at(TFieldList* flds, TLint index);
 TField* TFieldList_item_with_name(TFieldList* flds, char* name);
+TFieldList* TFieldList_clone(TFieldList* flds);
+char TFieldList_is_equal(TFieldList* flds1, TFieldList* flds2);
 
 /*
                     TSql

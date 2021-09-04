@@ -75,6 +75,8 @@ char do_test()
 	TString_test();
 	TStringList_test();
 	TVariant_test();
+	TField_test();
+	TFieldList_test();
 }
 
 
@@ -357,7 +359,7 @@ TArray* TArray_clone(TArray* arr_src, TFVarVar clone_value)
 	TArray* arr = TArray_init(TArray_new());
 	for (TLint i = 0; i < TArray_count(arr_src); i++)
 	{
-		arr->data[i] = clone_value(TArray_item_at(arr_src, i));
+		TArray_add(arr, clone_value(TArray_item_at(arr_src, i)));
 	}
 	return arr;
 }
@@ -773,9 +775,8 @@ void TVariant_test()
 	print_yellow("TVariant_init_int>>>\n");
 	print_yellow("TVariant_init>>>\n");
 	TVariant* var = TVariant_new();
-	TVariant_init_int(var, 5);
-	char res = var->name == 0 &&
-		TVariant_int(var) == 5 &&
+	TVariant_init_int(var, 5, "");
+	char res = TVariant_int(var) == 5 &&
 		var->value_type == Int;
 	test_v1(res);
 	print_yellow("TVariant_clean>>>\n");
@@ -783,29 +784,47 @@ void TVariant_test()
 	res = var->value == 0;
 	test_v1(res);
 	print_yellow("TVariant_init_double>>>\n");
-	TVariant_init_double(var, 1.56);
+	TVariant_init_double(var, 1.56,"");
 	if (var->value)
-		res = var->name == 0 &&
-		TVariant_double(var) == 1.56 &&
+		res = TVariant_double(var) == 1.56 &&
 		var->value_type == Double;
 	test_v1(res);
 	TVariant_clean(&var);
 	print_yellow("TVariant_init_cstring>>>\n");
-	TVariant_init_cstring(var, cstring_clone("hi"));
+	TVariant_init_cstring(var, cstring_clone("hi"),"");
 	if (var->value)
-		res = var->name == 0 &&
-		cstring_is_equal(TVariant_cstring(var),"hi") &&
+		res = cstring_is_equal(TVariant_cstring(var),"hi") &&
 		var->value_type ==  CString;
 	test_v1(res);
 	TVariant_clean(&var);
 	TVariant_free(&var);
+	print_yellow("TVariant_is_equal>>>\n");
+	res = TVariant_is_equal(TVariant_create_cstring("me"),
+		TVariant_create_cstring("me"));
+	res=res* TVariant_is_equal(TVariant_create_int(5),
+		TVariant_create_int(5));
+	res = res * TVariant_is_equal(TVariant_create_double(5.2),
+		TVariant_create_double(5.2));
+	res = res * !TVariant_is_equal(TVariant_create_double(5.4),
+		TVariant_create_int(5));
+	test_v1(res);
+	print_yellow("TVariant_clone>>>\n");
+	res = TVariant_is_equal(TVariant_create_cstring("me"),
+		TVariant_clone(TVariant_create_cstring("me")));
+	res = res * TVariant_is_equal(TVariant_create_int(5),
+		TVariant_clone(TVariant_create_int(5)));
+	res = res * TVariant_is_equal(TVariant_create_double(5.2),
+		TVariant_clone(TVariant_create_double(5.2)));
+	res = res * !TVariant_is_equal(TVariant_create_double(5.4),
+		TVariant_clone(TVariant_create_int(5)));
+	test_v1(res);
+
 }
 
 TVariant* TVariant_new()
 {
 	TVariant* var = (TVariant*)malloc(sizeof(TVariant));
 	if (var) {
-		var->name = 0;
 		var->value = 0;
 		var->value_type = -1;
 	}
@@ -814,25 +833,24 @@ TVariant* TVariant_new()
 }
 
 
-TVariant* TVariant_init(TVariant* var, TVar value,TTypes value_type,char*name)
+TVariant* TVariant_init(TVariant* var, TVar value,TTypes value_type)
 {
 	var->value = value;
 	var->value_type = value_type;
-	var->name = name;
 	return var;
 }
 
 TVariant* TVariant_init_int(TVariant* var, int i)
 {
 	int* n = (int*)malloc(sizeof(int));
-	*n = i;
-	TVariant_init(var, n, Int, 0);
+	if (n) *n = i; else assert(n);
+	TVariant_init(var, n, Int);
 	return var;
 }
 
 TVariant* TVariant_init_cstring(TVariant* var, char* str)
 {
-	TVariant_init(var, str, CString, 0);
+	TVariant_init(var, str, CString);
 	return var;
 }
 
@@ -841,9 +859,26 @@ TVariant* TVariant_init_double(TVariant* var, double f)
 	double* d = (double*)malloc(sizeof(double));
 	if (d != NULL) { *d = f; }
 	else assert(d);
-	TVariant_init(var, d, Double, 0);
+	TVariant_init(var, d, Double);
 	return var;
 }
+
+TVariant* TVariant_create_cstring(char* cstring)
+{
+	return TVariant_init_cstring(TVariant_new(),cstring);
+}
+
+TVariant* TVariant_create_int( int n)
+{
+	return TVariant_init_int(TVariant_new(),n);
+}
+
+TVariant* TVariant_create_double( double f)
+{
+	return TVariant_init_double(TVariant_new(),f);
+}
+
+
 
 int TVariant_int(TVariant* var)
 {
@@ -879,7 +914,6 @@ TVariant* TVariant_clean(TVariant** var_hld)
 
 void TVariant_free(TVariant** var_hld)
 {
-	free((*var_hld)->name);
 	free(*var_hld);
 	*var_hld = 0;
 }
@@ -889,48 +923,148 @@ void TVariant_destroy(TVariant** var_hld)
 	TVariant_free(TVariant_clean(var_hld));
 }
 
+char TVariant_is_equal(TVariant* var1, TVariant* var2)
+{
+	if (TVariant_type(var1) != TVariant_type(var2)) return 0;
+	if (TVariant_type(var1)==CString)
+	{
+		return cstring_is_equal(TVariant_cstring(var1),
+			TVariant_cstring(var2));
+	}
+	else if (TVariant_type(var1)==Int)
+	{
+		return TVariant_int(var1) == TVariant_int(var2);
+	}else if(TVariant_type(var1) == Double)
+	{
+		return TVariant_double(var1) == TVariant_double(var2);
+	}
+	return 0;
+}
+
+TTypes TVariant_type(TVariant* var)
+{
+	return var->value_type;
+}
+
+TVariant* TVariant_clone(TVariant* var)
+{
+	TVariant* v = TVariant_new();
+	switch (TVariant_type(var))
+	{
+	case Int:
+		TVariant_init_int(v, TVariant_int(var));
+		break;
+	case Double:
+		TVariant_init_double(v, TVariant_double(var));
+		break;
+	case CString:
+		TVariant_init_cstring(v, TVariant_cstring(var));
+		break;
+	default:
+		assert(0);
+		break;
+	}
+	return v;
+}
+
 
 /*
 				TField
 */
 
+
+void TField_test()
+{
+	print_cyan("\n\n**********\nTESTING TFIELD\n**********\n\n");
+	print_yellow("TField_new>>>\n");
+	TField* fld = TField_new();
+	char res = fld->name == 0 && fld->data == 0 && fld->is_generated == 0;
+	test_v1(res);
+	print_yellow("TField_init_int>>>\n");
+	fld=TField_create_int( "age", 1);
+	res= TVariant_int(fld->data) == 1 &&
+		cstring_is_equal("age",TField_name(fld));
+	test_v1(res);
+	print_yellow("TField_init_double>>>\n");
+	fld=TField_create_double( "salary", 1.2);
+	res = TVariant_double(fld->data) == 1.2 &&
+		cstring_is_equal("salary", TField_name(fld));
+	test_v1(res);
+	print_yellow("TField_init_cstring>>>\n");
+	fld=TField_create_cstring( "salary", "me");
+	if(fld->data) res = cstring_is_equal("me", (char*)fld->data->value) &&
+		cstring_is_equal("salary", TField_name(fld));
+	test_v1(res);
+	print_yellow("TField_is_equal>>>\n");
+	res = TField_is_equal(TField_create_int("me", 1),
+		TField_create_int("me", 1));
+	test_v1(res);
+	print_yellow("TField_clone>>>\n");
+	res = TField_is_equal(TField_create_int("me", 1),
+		TField_clone(TField_create_int("me", 1)));
+	test_v1(res);
+}
+
 TField* TField_new()
 {
 	TField* fld = (TField*)malloc(sizeof(fld));
 	if (fld) {
-		fld->is_generated = 1;
-		TVariant_init(fld->data, 0, -1,0);
+		fld->name = 0;
+		fld->data = 0;
+		fld->is_generated = 0;
 	}
 	else assert(fld);
 	return fld;
 }
 
-TField* TField_init(TField* fld,TVariant* var,char is_generated)
+TField* TField_init(TField* fld,
+	TVariant* var,
+	char is_generated,
+	char* name)
 {
 	fld->data = var;
 	fld->is_generated = is_generated;
+	TField_set_name(fld, name);
 	return fld;
 }
 
 TField* TField_init_int(TField* fld, char* name, int val)
 {
-	TField_init(fld, TVariant_init_int(TVariant_new(), val), 1);
-	fld->data->name =cstring_clone(name);
+	TField_init(fld,
+		TVariant_init_int(TVariant_new(), val ),
+		1,
+		name);
+	TField_set_name(fld, name);
 	return fld;
 }
 
 TField* TField_init_double(TField* fld, char* name, double val)
 {
-	TField_init(fld, TVariant_init_double(TVariant_new(), val), 1);
-	fld->data->name = cstring_clone(name);
+	TField_init(fld, TVariant_init_double(TVariant_new(), val, 0), 1,name);
+	TField_set_name(fld, name);
 	return fld;
 }
 
 TField* TField_init_cstring(TField* fld, char* name, char* val)
 {
-	TField_init(fld, TVariant_init_cstring(TVariant_new(), val), 1);
-	fld->data->name = cstring_clone(name);
+	TField_init(fld, TVariant_init_cstring(TVariant_new(), val,0), 1,name);
+	TField_set_name(fld,name);
 	return fld;
+}
+
+TField* TField_create_int(char* name, int val)
+{
+	return TField_init_int(TField_new(),name,val);
+}
+
+TField* TField_create_double(char* name, double val)
+{
+	return  TField_init_double(TField_new(), name, val);;
+}
+
+TField* TField_create_cstring(char* name, char* val)
+{
+	return TField_init_cstring(TField_new(), name, val);
 }
 
 TVariant* TField_data(TField* fld)
@@ -940,13 +1074,36 @@ TVariant* TField_data(TField* fld)
 
 void TField_set_name(TField* fld, char* name)
 {
-	if (fld->data->name) free(fld->data->name);
-	fld->data->name = cstring_clone(name);
+	if (fld->name) free(fld->name);
+	fld->name = cstring_clone(name);
 }
 
 char* TField_name(TField* fld)
 {
-	return fld->data->name;
+	return fld->name;
+}
+
+char TField_isgenerated(TField* fld)
+{
+	return fld->is_generated;
+}
+
+void TField_set_generated(TField* fld, char is_generated)
+{
+	fld->is_generated = is_generated;
+}
+
+char TField_is_equal(TField* fld1, TField* fld2)
+{
+	return cstring_is_equal(TField_name(fld1), TField_name(fld2)) &&
+		TVariant_is_equal(fld1->data, fld2->data);
+}
+
+TField* TField_clone(TField* fld)
+{
+	return TField_init(TField_new(),
+		TVariant_clone(fld->data),
+		fld->is_generated,fld->name);
 }
 
 
@@ -954,6 +1111,45 @@ char* TField_name(TField* fld)
 					TFieldList
 */
 
+
+void TFieldList_test()
+{
+	print_cyan("\n\n**********\nTESTING TFieldList\n**********\n\n");
+	print_yellow("TFieldList_new>>>\n");
+	TFieldList* flds = TFieldList_new();
+	char res = flds->fields == 0 &&
+		flds->is_changed == -1 &&
+		flds->is_deleted == -1 &&
+		flds->is_new == -1;
+	test_v1(res);
+	print_yellow("TFieldList_init>>>\n");
+	TFieldList_init(flds);
+	res = flds->fields != 0;
+	test_v1(res);
+	print_yellow("TFieldList_add>>>\n");
+	print_yellow("TFieldList_item_at>>>\n");
+	TField* fld1 = TField_create_int("age", 45);
+	TField* fld2 = TField_create_cstring("name", "nour");
+	TField* fld3 = TField_create_double("salary", 200.5);
+	TFieldList_add(flds, TField_clone(fld1));
+	TFieldList_add(flds, TField_clone(fld2));
+	TFieldList_add(flds, TField_clone(fld3));
+	res = TField_is_equal(TFieldList_item_at(flds, 0), fld1) &&
+		TField_is_equal(TFieldList_item_at(flds, 1), fld2) &&
+		TField_is_equal(TFieldList_item_at(flds, 2), fld3);
+	test_v1(res);
+	print_yellow("TFieldList_item_with_name>>>\n");
+	res = TField_is_equal(TFieldList_item_with_name(flds, "age"), fld1) &&
+		TField_is_equal(TFieldList_item_with_name(flds, "name"), fld2) &&
+		TField_is_equal(TFieldList_item_with_name(flds, "salary"), fld3);
+	test_v1(res);
+	print_yellow("TFieldList_clone>>>\n");
+	print_yellow("TFieldList_is_equal>>>\n");
+	TFieldList* flds1 = TFieldList_clone(flds);
+	res = TFieldList_is_equal(flds, flds1);
+	test_v1(res);
+
+}
 
 TFieldList* TFieldList_new()
 {
@@ -1025,6 +1221,30 @@ TField* TFieldList_item_with_name(TFieldList* flds, char* name)
 	}
 	return 0;
 }
+
+TFieldList* TFieldList_clone(TFieldList* flds)
+{
+	TFieldList* f = TFieldList_new();
+	f->is_changed = flds->is_changed;
+	f->is_deleted = flds->is_deleted;
+	f->is_new = flds->is_new;
+	f->fields = TArray_clone(flds->fields,(TFVarVar)TField_clone);
+	return f;
+}
+
+char TFieldList_is_equal(TFieldList* flds1, TFieldList* flds2)
+{
+	return TArray_is_equal(flds1->fields,flds2->fields,
+		(TFCharVarVar)TField_is_equal);
+}
+
+
+
+/*
+				   TSQL
+*/
+
+
 
 TSql* TSql_new()
 {
