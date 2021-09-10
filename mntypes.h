@@ -51,6 +51,8 @@ void cstring_free(TPtrHld str_hld);
 char cstring_is_equal(char* str1, char* str2);
 char* cstring_from_int(int i);
 char* cstring_from_double(double f);
+char* cstring_new_empty();
+char* cstring_new_from_const(const char* str);
 
 
 
@@ -85,8 +87,8 @@ char TArray_is_equal(TArray* arr1, TArray* arr2, TFCharVarVar is_equal);
 */
 
 struct TString {
-    char* cstring;
     TLint count;
+    char* cstring;
 };
 typedef struct TString TString;
 void TString_test();
@@ -158,7 +160,7 @@ int TVariant_int(TVariant* var);
 double TVariant_double(TVariant* var);
 TVar TVariant_value(TVariant* var);
 char* TVariant_cstring(TVariant* var);
-TVariant* TVariant_clean(TVariant** var_hld);
+TVariant** TVariant_clean(TVariant** var_hld);
 void TVariant_free(TVariant** var_hld);
 void TVariant_destroy(TVariant** var_hld);
 char TVariant_is_equal(TVariant* var1, TVariant* var2);
@@ -238,6 +240,7 @@ struct TSql {
 };
 typedef  enum logic_op logic_op  ;
 enum logic_op { AND, OR };
+void TSql_test();
 TSql* TSql_new();
 TSql* TSql_init(TSql* sql,
     TString* table_name,
@@ -246,17 +249,17 @@ TSql* TSql_init(TSql* sql,
     TString* w_order_by,
     int limit,
     int offset);
-TSql* TSql_clean(TSql** msql_hld);
+TSql** TSql_clean(TSql** msql_hld);
 void TSql_free(TSql** msql_hld);
 void TSql_destroy(TSql** msql_hld);
 TSql* TSql_clone(TSql* msql);
 char TSql_is_equal(TSql* msql1, TSql* msql2);
 TString* TSql_make_sql(TSql* msql);
-void TSql_add_filter(TSql* msql, enum logic_op log_oper, const char* filter);
-void TSql_set_where(TSql* msql, const char* w_where);
-void TSql_set_order(TSql* msql, const char* w_order);
+void TSql_add_filter(TSql* msql, enum logic_op log_oper,  char* filter);
+void TSql_set_where(TSql* msql,  char* w_where);
+void TSql_set_order(TSql* msql,  char* w_order);
 void TSql_set_limit(TSql* msql, int limit, int offset);
-void TSql_set_fields(TSql* msql, const char* fields);
-void TSql_set_table(TSql* msql, const char* table_name);
+void TSql_set_fields(TSql* msql,  char* fields);
+void TSql_set_table(TSql* msql,  char* table_name);
 void TSql_clear_filters(TSql* msql);
 TString* TSql_sql(TSql* sql);

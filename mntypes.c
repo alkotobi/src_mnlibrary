@@ -77,6 +77,8 @@ char do_test()
 	TVariant_test();
 	TField_test();
 	TFieldList_test();
+	TSql_test();
+	return 1;
 }
 
 
@@ -121,13 +123,15 @@ char* cstring_new(TLint size)
 {
 	size++;
 	char* str = calloc(size , sizeof(char));
-	assert(str);
+	if (str <= 0) {
+		assert(str);
+	}
 	return str;
 }
 
 TLint cstring_count(char* str)
 {
-	if (str) {
+	if (str>0) {
 		for (TLint i = 0; ; i++)
 		{
 			if (str[i] == 0)
@@ -196,6 +200,16 @@ char* cstring_from_double(double f)
 	return cstring;
 }
 
+char* cstring_new_empty()
+{
+	return cstring_new(0);
+}
+
+char* cstring_new_from_const(const char* str)
+{
+	return cstring_clone((char*)str);
+}
+
 /*
 			TArray
 
@@ -251,7 +265,7 @@ TArray* TArray_new()
 {
 	TArray* arr = (TArray*)malloc(sizeof(TArray));
 
-	if (arr)
+	if (arr>0)
 	{
 		arr->count = 0;
 		arr->data = 0;
@@ -273,11 +287,20 @@ TArray* TArray_init(TArray* arr)
 
 TArray* TArray_init_v1(TArray* arr, TLint size)
 {
+	if (arr <= 0) {
+		arr = TArray_new();
+	}
 	arr->data = (TPtrHld)calloc(size, sizeof(TVar));
-	assert(arr->data);
-	arr->size = size;
+	if (arr->data > 0) {
+		
+		arr->size = size;
+	}
+	else
+	{
+		assert(arr->data);
+	}
 	return arr;
-	return NULL;
+	
 }
 
 TArray** TArray_clean(TArray** arr_hld, TFVoidPtrHld free_val)
@@ -332,8 +355,7 @@ TVar TArray_add(TArray* arr, TVar var)
 	{
 		TLint size = arr->size * 2;
 		TPtrHld data = (TPtrHld)calloc((size), sizeof(TVar));
-		assert(data);
-		if (data)
+		if (data>0)
 		{
 			for (TLint i = 0; i < TArray_count(arr); i++)
 			{
@@ -342,6 +364,10 @@ TVar TArray_add(TArray* arr, TVar var)
 			free(arr->data);
 			arr->data = data;
 			arr->size = arr->size * 2;
+		}
+		else
+		{
+			assert(data);
 		}
 
 	}
@@ -436,7 +462,7 @@ TString* TString_new()
 {
 	TString* str = (TString*)malloc(sizeof(TString));
 	
-	if (str) {
+	if (str>0) {
 		str->count = 0;
 		//str->size = 0;
 		str->cstring = 0;
@@ -449,8 +475,11 @@ TString* TString_init(TString* str, char* cstring)
 	return TString_init_with_size(str, cstring_count(cstring), cstring);
 }
 TString* TString_init_with_size(TString* str, TLint size, char* cstring) {
+	if (str<=0)
+	{
+		str = TString_new();
+	}
 	str->count = size;
-	//str->size =size;
 	str->cstring = cstring;
 	return str;
 }
@@ -467,6 +496,7 @@ TString* TString_clone_cstring(char* cstring)
 
 TString** TString_clean(TString** str)
 {
+
 	if (*str) {
 		free((*str)->cstring);
 		(*str)->cstring = 0;
@@ -488,10 +518,10 @@ void TString_free(TString** str)
 
 TString* TString_clone(TString* str)
 {
-	TLint size = str->count+1; 
+	TLint size = (str->count)+1; 
 	char* cstring = (char*)malloc(sizeof(char) * size);
 	TString* res = 0;
-	if (cstring) {
+	if (cstring>0) {
 		for (TLint i = 0; i < str->count; i++)
 		{
 			cstring[i] = str->cstring[i];
@@ -533,9 +563,8 @@ TString* TString_add(TString* str_src, TString* str_sub)
 {
 	TLint count = str_src->count + str_sub->count;
 	TLint size = count + 1;
-	char* cstring = (char*)calloc((size), sizeof(char));
-	
-	if (cstring) {
+	char* cstring = (char*)calloc((size), sizeof(char));	
+	if (cstring>0) {
 		for (TLint i = 0; i < str_src->count; i++)
 		{
 			cstring[i] = str_src->cstring[i];
@@ -596,7 +625,7 @@ TString* TString_concat_multi(const char* str, ...) {
 	str1[j] = 0;
 	TArray_add(list, TString_init(TString_new(),cstring_clone(str1)));
 	TString* s = TStringList_text(list,"");
-	TArray_free(TArray_clean(&list, TString_destroy));
+	TArray_free(TArray_clean(&list,(TFVoidPtrHld) TString_destroy));
 	return  s;
 }
 
@@ -746,7 +775,7 @@ TString* TStringList_add(TStringList* str_l, TString* str)
 TStringList** TStringList_clean(TStringList** str_l)
 {
 	if (*str_l) {
-		TArray_clean(str_l, TString_destroy);
+		TArray_clean(str_l, (TFVoidPtrHld)TString_destroy);
 	}
 	return str_l;
 }
@@ -775,7 +804,7 @@ void TVariant_test()
 	print_yellow("TVariant_init_int>>>\n");
 	print_yellow("TVariant_init>>>\n");
 	TVariant* var = TVariant_new();
-	TVariant_init_int(var, 5, "");
+	TVariant_init_int(var, 5);
 	char res = TVariant_int(var) == 5 &&
 		var->value_type == Int;
 	test_v1(res);
@@ -784,14 +813,14 @@ void TVariant_test()
 	res = var->value == 0;
 	test_v1(res);
 	print_yellow("TVariant_init_double>>>\n");
-	TVariant_init_double(var, 1.56,"");
+	TVariant_init_double(var, 1.56);
 	if (var->value)
 		res = TVariant_double(var) == 1.56 &&
 		var->value_type == Double;
 	test_v1(res);
 	TVariant_clean(&var);
 	print_yellow("TVariant_init_cstring>>>\n");
-	TVariant_init_cstring(var, cstring_clone("hi"),"");
+	TVariant_init_cstring(var, cstring_clone("hi"));
 	if (var->value)
 		res = cstring_is_equal(TVariant_cstring(var),"hi") &&
 		var->value_type ==  CString;
@@ -824,7 +853,7 @@ void TVariant_test()
 TVariant* TVariant_new()
 {
 	TVariant* var = (TVariant*)malloc(sizeof(TVariant));
-	if (var) {
+	if (var>0) {
 		var->value = 0;
 		var->value_type = -1;
 	}
@@ -835,6 +864,10 @@ TVariant* TVariant_new()
 
 TVariant* TVariant_init(TVariant* var, TVar value,TTypes value_type)
 {
+	if (var<=0)
+	{
+		var = TVariant_new();
+	}
 	var->value = value;
 	var->value_type = value_type;
 	return var;
@@ -843,7 +876,7 @@ TVariant* TVariant_init(TVariant* var, TVar value,TTypes value_type)
 TVariant* TVariant_init_int(TVariant* var, int i)
 {
 	int* n = (int*)malloc(sizeof(int));
-	if (n) *n = i; else assert(n);
+	if (n > 0) *n = i; else assert(n);
 	TVariant_init(var, n, Int);
 	return var;
 }
@@ -857,7 +890,7 @@ TVariant* TVariant_init_cstring(TVariant* var, char* str)
 TVariant* TVariant_init_double(TVariant* var, double f)
 {
 	double* d = (double*)malloc(sizeof(double));
-	if (d != NULL) { *d = f; }
+	if (d > 0) { *d = f; }
 	else assert(d);
 	TVariant_init(var, d, Double);
 	return var;
@@ -903,7 +936,7 @@ char* TVariant_cstring(TVariant* var)
 	return (char*)var->value;
 }
 
-TVariant* TVariant_clean(TVariant** var_hld)
+TVariant** TVariant_clean(TVariant** var_hld)
 {
 	if (*var_hld) {
 		free((*var_hld)->value);
@@ -1022,6 +1055,10 @@ TField* TField_init(TField* fld,
 	char is_generated,
 	char* name)
 {
+	if (fld<=0)
+	{
+		fld = TField_new();
+	}
 	fld->data = var;
 	fld->is_generated = is_generated;
 	TField_set_name(fld, name);
@@ -1040,14 +1077,14 @@ TField* TField_init_int(TField* fld, char* name, int val)
 
 TField* TField_init_double(TField* fld, char* name, double val)
 {
-	TField_init(fld, TVariant_init_double(TVariant_new(), val, 0), 1,name);
+	TField_init(fld, TVariant_init_double(TVariant_new(), val), 1,name);
 	TField_set_name(fld, name);
 	return fld;
 }
 
 TField* TField_init_cstring(TField* fld, char* name, char* val)
 {
-	TField_init(fld, TVariant_init_cstring(TVariant_new(), val,0), 1,name);
+	TField_init(fld, TVariant_init_cstring(TVariant_new(), val), 1,name);
 	TField_set_name(fld,name);
 	return fld;
 }
@@ -1246,6 +1283,41 @@ char TFieldList_is_equal(TFieldList* flds1, TFieldList* flds2)
 
 
 
+void TSql_test()
+{
+	print_cyan("\n\n**********\nTESTING TSQL\n**********\n\n");
+	print_yellow("TSql_new>>>\n");
+	TSql* sql = TSql_new();
+	char res = sql->fields == 0 &&
+		sql->filters == 0 &&
+		sql->limit == 0 &&
+		sql->offset == 0 &&
+		sql->sql == 0 &&
+		sql->sql_order_by == 0 &&
+		sql->sql_rec_count == 0 &&
+		sql->sql_where == 0 &&
+		sql->table_name == 0;
+	test_v1(res);
+	print_yellow("TSql_init>>>\n");
+	TSql_init(sql, TString_init(0,"client"),
+		TString_init(0,"name,age,salary"),
+		TString_init(0, "client='me'"), TString_init(0, "name"), 10, 0);
+	if(sql->fields) res = cstring_is_equal(sql->fields->cstring, "name,age,salary") &&
+		sql->filters != 0 &&
+		sql->limit == 10 &&
+		sql->offset == 0 &&
+		sql->sql == 0 &&
+		cstring_is_equal(sql->sql_order_by->cstring, "name") &&
+		sql->sql_rec_count == 0 &&
+		cstring_is_equal(sql->sql_where->cstring, "client='me'") &&
+		cstring_is_equal(sql->table_name->cstring, "client");
+	test_v1(res);
+	print_yellow("TSql_make_sql>>>\n");
+	TString* str = TSql_make_sql(sql);
+	res = TString_is_equal_cstring(str, " SELECT name,age,salary FROM client  WHERE client='me'  ORDER BY name  LIMIT 10 OFFSET 0 ");
+	test_v1(res);
+}
+
 TSql* TSql_new()
 {
 	TSql* sql = (TSql*)malloc(sizeof(TSql));
@@ -1273,33 +1345,37 @@ TSql* TSql_init(TSql* sql,
 	int limit, 
 	int offset)
 {
+	if (sql<=0)
+	{
+		sql = TSql_new();
+	}
 	sql->fields = fields;
 	sql->limit = limit;
 	sql->offset = offset;
-	sql->sql = sql;
+	//sql->sql = sql;
 	sql->sql_order_by = w_order_by;
 	sql->sql_where = w_where;
 	sql->table_name = table_name;
-	sql->filters = TArray_init(TArray_new);
+	sql->filters = TArray_init(TArray_new());
 	return sql;
 }
 
-TSql* TSql_clean(TSql** msql_hld)
+TSql** TSql_clean(TSql** msql_hld)
 {
 	if (*msql_hld) {
-		TString_destroy((*msql_hld)->sql);
+		TString_destroy(&((*msql_hld)->sql));
 	}
 	return msql_hld;
 }
 
 void TSql_free(TSql** msql_hld)
 {
-	TString_destroy((*msql_hld)->fields);
-	TString_destroy((*msql_hld)->sql_order_by);
-	TString_destroy((*msql_hld)->sql_where);
-	TString_destroy((*msql_hld)->table_name);
-	TString_destroy((*msql_hld)->sql_rec_count);
-	TArray_free(TArray_clean((*msql_hld)->filters, TString_destroy));
+	TString_destroy(&(*msql_hld)->fields);
+	TString_destroy(&(*msql_hld)->sql_order_by);
+	TString_destroy(&(*msql_hld)->sql_where);
+	TString_destroy(&(*msql_hld)->table_name);
+	TString_destroy(&(*msql_hld)->sql_rec_count);
+	TArray_free(TArray_clean(&(*msql_hld)->filters,(TFVoidPtrHld) TString_destroy));
 	free(*msql_hld);
 	*msql_hld = 0;
 }
@@ -1353,7 +1429,7 @@ TString* TSql_make_sql(TSql* msql)
 			TString_concat_multi(" WHERE %m ", msql->sql_where));
 	}
 	else {
-		where_sql = TStringList_add(trash, TString_init(TString_new(),""));
+		where_sql = TStringList_add(trash, TString_init(TString_new(), cstring_clone("")));
 	}
 	TString* order_by = 0;
 	if (msql->sql_order_by != 0 && (msql->sql_order_by->count!=0)) {
@@ -1361,7 +1437,7 @@ TString* TSql_make_sql(TSql* msql)
 			TString_concat_multi(" ORDER BY %m ", msql->sql_order_by));
 	}
 	else {
-		order_by = TStringList_add(trash, TString_init(TString_new(), ""));
+		order_by = TStringList_add(trash, TString_init(TString_new(), cstring_clone("")));
 	}
 	TString* limit_sql = 0;
 	if (msql->limit != 0) {
@@ -1371,7 +1447,7 @@ TString* TSql_make_sql(TSql* msql)
 			msql->offset));
 	}
 	else {
-		limit_sql = TStringList_add(trash, TString_init(TString_new(),""));
+		limit_sql = TStringList_add(trash, TString_init(TString_new(), cstring_clone("")));
 	}
 
 	TString* filters = 0;
@@ -1379,12 +1455,12 @@ TString* TSql_make_sql(TSql* msql)
 		arr = TArray_clone(msql->filters, (TFVarVar)TString_clone);
 		if (!where_sql || (where_sql->count==0)) {
 			TString_free(TArray_item_at(arr, 0));
-			arr->data[0]= TString_init(TString_new()," WHERE ");
+			arr->data[0]= TString_init(TString_new(), cstring_clone(" WHERE "));
 		}
 		filters = TStringList_add(trash, TStringList_text(arr,""));
 	}
 	else {
-		filters = TStringList_add(trash, TString_init(TString_new(),""));
+		filters = TStringList_add(trash, TString_init(TString_new(), cstring_clone("")));
 	}
 	if (msql->sql) {
 		TString_free(&msql->sql);
@@ -1396,14 +1472,15 @@ TString* TSql_make_sql(TSql* msql)
 	msql->sql_rec_count = TString_concat_multi("SELECT COUNT() as count from %m %m",
 		msql->table_name, where_sql);
 	if (arr) {
-		TArray_clean(arr, (TFVoidPtrHld)TString_free);
+		TArray_clean(&arr, (TFVoidPtrHld)TString_free);
 		TArray_free(&arr);
 	}
-	TString_destroy(&trash);
+	TStringList_destroy(&trash);
+
 	return msql->sql;
 }
 
-void TSql_add_filter(TSql* msql, enum logic_op log_oper, const char* filter)
+void TSql_add_filter(TSql* msql, enum logic_op log_oper,  char* filter)
 {
 	if (log_oper == AND) {
 		TArray_add(msql->filters, TString_init(TString_new(),cstring_clone(" AND ")));
@@ -1418,7 +1495,7 @@ void TSql_add_filter(TSql* msql, enum logic_op log_oper, const char* filter)
 	TSql_make_sql(msql);
 }
 
-void TSql_set_where(TSql* msql, const char* w_where)
+void TSql_set_where(TSql* msql,  char* w_where)
 {
 	if (msql->sql_where) {
 		TString_destroy(&msql->sql_where);
@@ -1427,7 +1504,7 @@ void TSql_set_where(TSql* msql, const char* w_where)
 	TSql_make_sql(msql);
 }
 
-void TSql_set_order(TSql* msql, const char* w_order)
+void TSql_set_order(TSql* msql,  char* w_order)
 {
 	if (msql->sql_order_by) {
 		TString_destroy(&msql->sql_order_by);
@@ -1443,7 +1520,7 @@ void TSql_set_limit(TSql* msql, int limit, int offset)
 	TSql_make_sql(msql);
 }
 
-void TSql_set_fields(TSql* msql, const char* fields)
+void TSql_set_fields(TSql* msql,  char* fields)
 {
 	if (msql->fields) {
 		TString_destroy(&msql->fields);
@@ -1452,7 +1529,7 @@ void TSql_set_fields(TSql* msql, const char* fields)
 	TSql_make_sql(msql);
 }
 
-void TSql_set_table(TSql* msql, const char* table_name)
+void TSql_set_table(TSql* msql,  char* table_name)
 {
 	if (msql->table_name) {
 		TString_destroy(&msql->table_name);
@@ -1463,7 +1540,7 @@ void TSql_set_table(TSql* msql, const char* table_name)
 
 void TSql_clear_filters(TSql* msql)
 {
-	TArray_clean(msql->filters, (TFVoidPtrHld)TString_destroy);
+	TArray_clean(&msql->filters, (TFVoidPtrHld)TString_destroy);
 	TSql_make_sql(msql);
 }
 
