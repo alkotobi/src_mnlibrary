@@ -240,6 +240,7 @@ struct TField
     TVariant* data;
     char is_generated;
     char* name;
+    char order;
 };
 typedef struct TField TField;
 void TField_test();
@@ -251,6 +252,9 @@ TField* TField_init_cstring(TField* fld, char* name, char* val);
 TField* TField_create_int(char* name, int val);
 TField* TField_create_double(char* name, double val);
 TField* TField_create_cstring(char* name, char* val);
+TField** TField_clean(TField** fld_hld);
+void TField_free(TField** fld_hld);
+void TField_destroy(TField** fld_hld);
 TVariant* TField_data(TField* fld);
 void TField_set_name(TField* fld, char* name);
 char* TField_name(TField* fld);
@@ -258,6 +262,9 @@ char TField_isgenerated(TField* fld);
 void TField_set_generated(TField* fld, char is_generated);
 char TField_is_equal(TField* fld1, TField* fld2);
 TField* TField_clone(TField* fld);
+void TField_set_order(TField* fld, char order);
+char TFielld_order(TField* fld);
+char TField_order_is_greater(TField* fld1, TField* fld2);
 
 
 /*
@@ -285,6 +292,7 @@ TField* TFieldList_item_at(TFieldList* flds, TLint index);
 TField* TFieldList_item_with_name(TFieldList* flds, char* name);
 TFieldList* TFieldList_clone(TFieldList* flds);
 char TFieldList_is_equal(TFieldList* flds1, TFieldList* flds2);
+void TFieldList_sort_by_order(TFieldList* flds);
 
 /*
                     TSql
