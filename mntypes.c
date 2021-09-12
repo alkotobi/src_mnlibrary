@@ -146,9 +146,9 @@ TLint cstring_count(char* str)
 
 char* cstring_clone(char* str_src)
 {
-	if (!str_src)
+	if (str_src<=0)
 	{
-		return 0;
+		str_src= "";
 	}
 	char* str = 0;
 	TLint count = cstring_count(str_src);
@@ -210,6 +210,23 @@ char* cstring_new_from_const(const char* str)
 	return cstring_clone((char*)str);
 }
 
+char cstring_is_great(char* str1, char* str2)
+{
+	TLint str1_count = cstring_count(str1);
+	TLint str2_count = cstring_count(str2);
+	for (TLint i = 0; i < str1_count && i<str2_count; i++)
+	{
+		if (str1[i] < str2[i]) return 0;
+		if(str1[i] > str2[i]) return 1;
+	}
+	return 0;
+}
+
+void TEvent_on_event(TEvent* event)
+{
+	event->on_event(event);
+}
+
 /*
 			TArray
 
@@ -250,15 +267,67 @@ void TArray_test()
 	res = res * cstring_is_equal((char*)TArray_item_at(arr, 3), "3");
 	res = res * cstring_is_equal((char*)TArray_item_at(arr, 4), "4");
 	test_v1(res);
+	
+	print_yellow("TArray_resize>>>>>\n");
+	TLint l= TArray_size(arr);
+	TArray_resize(arr, l * 2);
+	res = TArray_size(arr) == l * 2;
+	if (arr && arr->data)res = res * (arr->data[arr->size - 1] == 0);
+	test_v1(res);
+	print_yellow("TArray_set_item_at>>>>>\n");
+	TArray_set_item_at(arr, cstring_clone("one"),0);
+	if (arr && arr->data)res = cstring_is_equal(arr->data[0], "one");
+	test_v1(res);
+	print_yellow("TArray_find>>>>>\n");
+	l = TArray_find(arr, "4", cstring_is_equal);
+	res = cstring_is_equal(TArray_item_at(arr, l), "4");
+	test_v1(res);
+	print_yellow("TArray_insert_item_at>>>>>\n");
+	TArray_insert_item_at(arr, cstring_clone("insert"), 3);
+	res = cstring_is_equal(TArray_item_at(arr, 3), "insert");
+	res = res * cstring_is_equal((char*)TArray_item_at(arr, 4), "3");
+	res = res * cstring_is_equal((char*)TArray_item_at(arr, 5), "4");
+	test_v1(res);
+	print_yellow("TArray_remove_item_at>>>>>\n");
+	TArray_remove_item_at(arr,3);
+	res = cstring_is_equal(TArray_item_at(arr, 3), "3");
+	res = res * cstring_is_equal((char*)TArray_item_at(arr, 4), "4");
+	if (arr && arr->data)res = res * (arr->data[5] == 0);
+	test_v1(res);
+	print_yellow("TArray_add_or_replace>>>>>\n");
+	char* s4 = TArray_add_or_replace(arr, cstring_clone("4"), cstring_is_equal);
+	res = s4 != TArray_item_at(arr, 4) &&
+		cstring_is_equal((char*)TArray_item_at(arr, 4), "4");
+	test_v1(res);
+	print_yellow("TArray_sort>>>>>\n");
+	TArray_add(arr,cstring_clone("9"));
+	TArray_add(arr, cstring_clone("8"));
+	TArray_add(arr, cstring_clone("7"));
+	TArray_add(arr, cstring_clone("6"));
+	TArray_add(arr, cstring_clone("5"));
+	for (TLint i = 0; i < TArray_count(arr); i++)
+	{
+		print_magenta((char*)TArray_item_at(arr, i));
+		print_magenta("\n");
+	}
+	TArray_sort(arr,cstring_is_great);
+	print_blue(">>>>>>>>>>>\n");
+	for (TLint i = 0; i < TArray_count(arr); i++)
+	{
+		print_magenta((char*)TArray_item_at(arr, i));
+		print_magenta("\n");
+	}
+
 	print_yellow("TArray_clean>>>>>\n");
 	TArray_clean(&arr, cstring_free);
-	res = (arr->data != 0) && (TArray_size(arr) == 8) &&
-		(TArray_count(arr) ==0);
+	res = (arr->data != 0) && (TArray_size(arr) == 16) &&
+		(TArray_count(arr) == 0);
 	test_v1(res);
 	print_yellow("TArray_free>>>>>\n");
 	TArray_free(&arr);
 	res = arr == 0;
 	test_v1(res);
+	
 }
 
 TArray* TArray_new()
@@ -301,6 +370,27 @@ TArray* TArray_init_v1(TArray* arr, TLint size)
 	}
 	return arr;
 	
+}
+
+TArray* TArray_resize(TArray* arr, TLint size)
+{
+	assert(TArray_size(arr) < size);
+	TPtrHld data= realloc(arr->data, size * sizeof(TVar));
+	//(TPtrHld)calloc((size), sizeof(TVar));
+	if (data)
+	{
+		arr->data = data;
+		arr->size = size;
+		for (TLint i = TArray_count(arr); i < size; i++)
+		{
+			arr->data[i] = 0;
+		}
+	}
+	else
+	{
+	assert(data);
+	}
+	return arr;
 }
 
 TArray** TArray_clean(TArray** arr_hld, TFVoidPtrHld free_val)
@@ -353,23 +443,7 @@ TVar TArray_add(TArray* arr, TVar var)
 {
 	if (TArray_count(arr) == TArray_size(arr))
 	{
-		TLint size = arr->size * 2;
-		TPtrHld data = (TPtrHld)calloc((size), sizeof(TVar));
-		if (data>0)
-		{
-			for (TLint i = 0; i < TArray_count(arr); i++)
-			{
-				data[i] = arr->data[i];
-			}
-			free(arr->data);
-			arr->data = data;
-			arr->size = arr->size * 2;
-		}
-		else
-		{
-			assert(data);
-		}
-
+		TArray_resize(arr, arr->size * 2);
 	}
 	if (arr->data)
 	{
@@ -399,6 +473,248 @@ char TArray_is_equal(TArray* arr1, TArray* arr2, TFCharVarVar is_equal)
 	}
 	return 1;
 }
+
+TLint TArray_find(TArray* arr, TVar item, TFCharVarVar is_equal)
+{
+	for (TLint i = 0; i < TArray_count(arr); i++) {
+		if (is_equal(item,TArray_item_at(arr,i))) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+TVar TArray_set_item_at(TArray* arr, TVar item, TLint index)
+{
+	assert(index < TArray_count(arr));
+	TVar var = TArray_item_at(arr, index);
+	arr->data[index] = item;
+	return var;
+}
+
+void TArray_insert_item_at(TArray* arr, TVar item, TLint index)
+{
+	assert(index < TArray_count(arr));
+	if (arr->count == arr->size) {
+		TArray_resize(arr, arr->size * 2);
+	}
+	for (TLint i = arr->count; i > index; i--)
+	{
+		arr->data[i] = arr->data[i - 1];
+	}
+	arr->data[index] = item;
+	arr->count++;
+}
+
+TVar TArray_remove_item_at(TArray* arr, TLint index)
+{
+	assert(index < TArray_count(arr));
+	TVar var = arr->data[index];
+	if (index<arr->count-1) for (TLint i = index; i < arr->count-1; i++)
+	{
+		arr->data[i] = arr->data[i + 1];
+	}
+	arr->data[arr->count-1] = 0;
+	arr->count--;
+	return var;
+}
+
+TVar TArray_add_or_replace(TArray* arr, TVar item, TFCharVarVar is_equal)
+{
+	TVar var = 0;
+	TLint index = TArray_find(arr, item, is_equal);
+	if (index >= 0) {
+		 var = arr->data[index];
+		 arr->data[index] = item;
+	}
+	else
+	{
+		TArray_add(arr, item);
+	}
+	return var;
+}
+
+void TArray_sort(TArray* arr, TFCharVarVar is_great)
+{
+	char switched = 0;
+	do
+	{
+		switched = 0;
+		for (TLint i = 0; i < TArray_count(arr)-1; i++)
+		{
+			if (is_great(TArray_item_at(arr, i), TArray_item_at(arr, i + 1))) {
+				TArray_set_item_at(arr,
+					TArray_set_item_at(arr, TArray_item_at(arr, i + 1), i),
+					i + 1);
+				switched = 1;
+			}
+		}
+	} while (switched);
+}
+
+
+/*
+			TLinkedListEntry
+*/
+
+
+TLinkedListEntry* TLinkedListEntry_new()
+{
+	//TODO: test TLinkedListEntry_new
+	TLinkedListEntry* l = (TLinkedListEntry*)malloc(sizeof(TLinkedListEntry));
+	if (l>0)
+	{
+		l->next_entry = 0;
+		l->value = 0;
+	}
+	else
+	{
+		assert(l);
+	}
+	return l ;
+}
+
+TLinkedListEntry* TLinkedListEntry_init(TLinkedListEntry* l, TVar value, TLinkedListEntry* next_entry)
+{
+	if (l<=0)
+	{
+		l = TLinkedListEntry_new();
+	}
+	l->next_entry = next_entry;
+	l->value = value;
+	return l;
+}
+
+
+/*
+			TLinkedList
+*/
+
+
+
+
+
+TLinkedList* TLinkedList_new()
+{
+	TLinkedList* list = (TLinkedList*)malloc(sizeof(TLinkedList));
+	if (list>0)
+	{
+		list->last = 0;
+		list->root = 0;
+	}
+	else assert(list);
+	return list;
+}
+
+TLinkedList* TLinkedList_init(TLinkedList* list, TLinkedListEntry* root)
+{
+	if (list<=0)
+	{
+		list = TLinkedList_new();
+	}
+	list->root = root;
+	list->last = root;
+	return list;
+}
+
+TLinkedListEntry* TLinkedList_add(TLinkedList* list, TLinkedListEntry* entry)
+{
+	list->last->next_entry = entry;
+	list->last = entry;
+	return entry;
+}
+
+TLinkedList** TLinkedList_clean(TLinkedList** list_hld, TFVoidPtrHld free_val)
+{
+	TLinkedListEntry* l = (*list_hld)->root;
+	for(; l ;l=l->next_entry )
+	{
+		free_val(&l->value);
+	}
+	return list_hld;
+}
+
+void TLinkedList_free(TLinkedList** list_hld)
+{
+	TLinkedListEntry* l = (*list_hld)->root;
+	TLinkedListEntry* next = 0;
+	for (; l; l =next)
+	{
+		next = l->next_entry;
+		free(l);
+	}
+	free(*list_hld);
+	*list_hld = 0;
+}
+
+void TLinkedList_destroy(TLinkedList** list_hld, TFVoidPtrHld free_val)
+{
+	TLinkedListEntry* l = (*list_hld)->root;
+	TLinkedListEntry* next = 0;
+	for (; l; l = next)
+	{
+		next = l->next_entry;
+		free_val(&l->value);
+		free(l);
+	}
+	free(*list_hld);
+	*list_hld = 0;
+}
+
+TLinkedListEntry* TLinkedList_find(TLinkedList list, TVar value, TFCharVarVar is_equal)
+{
+	TLinkedListEntry* l = list.root;
+	for (; l;l=l->next_entry )
+	{
+		if (is_equal(l->value,value))
+		{
+			return l;
+		}
+	}
+	return l;
+}
+
+TLinkedListEntry* TLinkedList_insert_after(TLinkedList* list, TLinkedListEntry* entry_to_ensert, TLinkedListEntry* entry_to_insert_after)
+{
+	if (list->last==entry_to_insert_after)
+	{
+		list->last = entry_to_ensert;
+	}
+	entry_to_ensert->next_entry = entry_to_insert_after->next_entry;
+	entry_to_insert_after->next_entry = entry_to_ensert;
+	return entry_to_ensert;
+}
+
+TLinkedListEntry* TLinkedList_remove(TLinkedList* list, TLinkedListEntry* entry)
+{
+	TLinkedListEntry* root = list->root;
+	if (root==entry)
+	{
+		list->root = 0;
+		list->last = 0;
+	}
+	do
+	{
+		if (root->next_entry == entry) {
+			root->next_entry = entry->next_entry;
+			if (entry->next_entry==0)
+			{
+				list->last = root;
+			}
+			break;
+			
+		}else
+			{
+				root = root->next_entry;
+			}
+	} while (root);
+	return entry;
+}
+
+
+/*
+			TString
+*/
 
 void TString_test()
 {
@@ -434,7 +750,7 @@ void TString_test()
 	res =res* (strcon == 0);
 	test_v1(res);
 	print_yellow("TString_clone_cstring>>>\n");
-	TString* ss = TString_clone_cstring("hello world\n");
+	TString* ss = TString_from_cstring_cpy("hello world\n");
 	print_magenta(ss->cstring);
 	res = cstring_is_equal(ss->cstring, "hello world\n");
 	test_v1(res);
@@ -449,8 +765,8 @@ void TString_test()
 	printf("\n");
 	test_v1(res);
 	print_yellow("TString_replace>>>\n");
-	TString_replace(ss, TString_clone_cstring("hello"), 0);
-	TString_replace(ss, TString_clone_cstring("\n"), 11);
+	TString_replace(ss, TString_from_cstring_cpy("hello"), 0);
+	TString_replace(ss, TString_from_cstring_cpy("\n"), 11);
 	print_magenta(ss->cstring);
 	res = TString_is_equal_cstring(ss, "hello......\n");
 	printf("\n");
@@ -472,8 +788,18 @@ TString* TString_new()
 
 TString* TString_init(TString* str, char* cstring)
 {
+	if (cstring<=0)
+	{
+		cstring = cstring_new_from_const("");
+	}
 	return TString_init_with_size(str, cstring_count(cstring), cstring);
 }
+
+TString* TString_init_cstring_cpy(TString* str, char* cstring)
+{
+	return TString_init( str, cstring_clone(cstring));
+}
+
 TString* TString_init_with_size(TString* str, TLint size, char* cstring) {
 	if (str<=0)
 	{
@@ -489,7 +815,7 @@ TString* TString_from_cstring(char* cstring)
 	return TString_init(TString_new(),cstring);
 }
 
-TString* TString_clone_cstring(char* cstring)
+TString* TString_from_cstring_cpy(char* cstring)
 {
 	return TString_from_cstring(cstring_clone(cstring));
 }
@@ -689,9 +1015,9 @@ void TStringList_test()
 	print_yellow("TStringList_add>>>\n");
 	print_yellow("TStringList_item_at>>>\n");
 	TStringList* strs = TStringList_init(TStringList_new());
-	TString* s1 = TString_clone_cstring("hello ");
-	TString* s2 = TString_clone_cstring("world ");
-	TString* s3 = TString_clone_cstring("!\n");
+	TString* s1 = TString_from_cstring_cpy("hello ");
+	TString* s2 = TString_from_cstring_cpy("world ");
+	TString* s3 = TString_from_cstring_cpy("!\n");
 	TStringList_add(strs, s1);
 	TStringList_add(strs, s2);
 	TStringList_add(strs, s3);
@@ -1299,9 +1625,10 @@ void TSql_test()
 		sql->table_name == 0;
 	test_v1(res);
 	print_yellow("TSql_init>>>\n");
-	TSql_init(sql, TString_init(0,"client"),
-		TString_init(0,"name,age,salary"),
-		TString_init(0, "client='me'"), TString_init(0, "name"), 10, 0);
+	TSql_init(sql, TString_init(0, cstring_clone("client")),
+		TString_init(0,cstring_clone("name,age,salary")),
+		TString_init(0, cstring_clone("client='me'")),
+		TString_init(0, cstring_clone("name")), 10, 0);
 	if(sql->fields) res = cstring_is_equal(sql->fields->cstring, "name,age,salary") &&
 		sql->filters != 0 &&
 		sql->limit == 10 &&
@@ -1316,6 +1643,21 @@ void TSql_test()
 	TString* str = TSql_make_sql(sql);
 	res = TString_is_equal_cstring(str, " SELECT name,age,salary FROM client  WHERE client='me'  ORDER BY name  LIMIT 10 OFFSET 0 ");
 	test_v1(res);
+	print_yellow("TSql_add_filter>>>\n");
+	TSql_add_filter(sql, AND, cstring_clone("age=40"));
+	TSql_add_filter(sql, OR, cstring_clone("salary=40"));
+	str = TSql_make_sql(sql);
+	res = TString_is_equal_cstring(str, " SELECT name,age,salary FROM client  WHERE client='me'  AND age=40 OR salary=40 ORDER BY name  LIMIT 10 OFFSET 0 ");
+	test_v1(res);
+	print_yellow("TSql_clone>>>\n");
+	print_yellow("TSql_is_equal>>>\n");
+	TSql* sql2 = TSql_clone(sql);
+	res = TSql_is_equal(sql, sql2);
+	test_v1(res);
+	print_yellow("TSql_destroy>>>\n");
+	TSql_destroy(&sql2);
+	TSql_destroy(&sql);
+	test_v1(1);
 }
 
 TSql* TSql_new()
@@ -1358,6 +1700,28 @@ TSql* TSql_init(TSql* sql,
 	sql->table_name = table_name;
 	sql->filters = TArray_init(TArray_new());
 	return sql;
+}
+
+TSql* TSql_init_with_cstring(TSql* sql, char* table_name, char* fields, char* w_where, char* w_order_by, int limit, int offset)
+{
+	return TSql_init(sql,
+		TString_from_cstring(table_name),
+		TString_from_cstring(fields),
+		TString_from_cstring(w_where),
+		TString_from_cstring(w_order_by),
+		limit,
+		offset);
+}
+
+TSql* TSql_init_with_cstring_cpy(TSql* sql, char* table_name, char* fields, char* w_where, char* w_order_by, int limit, int offset)
+{
+	return TSql_init_with_cstring(sql,
+		cstring_clone(table_name),
+		cstring_clone(fields),
+		cstring_clone(w_where),
+		cstring_clone(w_order_by),
+		limit,
+		offset);
 }
 
 TSql** TSql_clean(TSql** msql_hld)
@@ -1491,8 +1855,13 @@ void TSql_add_filter(TSql* msql, enum logic_op log_oper,  char* filter)
 	else {
 		return;
 	}
-	TArray_add(msql->filters, TString_init(TString_new(), cstring_clone(filter)));
-	TSql_make_sql(msql);
+	TArray_add(msql->filters, TString_init(TString_new(), filter));
+}
+
+
+void TSql_add_filter_cpy(TSql* msql, logic_op log_oper, char* filter)
+{
+	TSql_add_filter(msql, log_oper, cstring_clone(filter));
 }
 
 void TSql_set_where(TSql* msql,  char* w_where)
@@ -1500,8 +1869,12 @@ void TSql_set_where(TSql* msql,  char* w_where)
 	if (msql->sql_where) {
 		TString_destroy(&msql->sql_where);
 	}
-	msql->sql_where = TString_init(TString_new(),cstring_clone(w_where));
-	TSql_make_sql(msql);
+	msql->sql_where = TString_init(TString_new(),(w_where));
+}
+
+void TSql_set_where_cpy(TSql* msql, char* w_where)
+{
+	TSql_set_where(msql, cstring_clone(w_where));
 }
 
 void TSql_set_order(TSql* msql,  char* w_order)
@@ -1509,15 +1882,18 @@ void TSql_set_order(TSql* msql,  char* w_order)
 	if (msql->sql_order_by) {
 		TString_destroy(&msql->sql_order_by);
 	}
-	msql->sql_order_by = TString_init(TString_new(), cstring_clone(w_order));
-	TSql_make_sql(msql);
+	msql->sql_order_by = TString_init(TString_new(), (w_order));
+}
+
+void TSql_set_order_cpy(TSql* msql, char* w_order)
+{
+	 TSql_set_order(msql, cstring_clone(w_order));
 }
 
 void TSql_set_limit(TSql* msql, int limit, int offset)
 {
 	msql->limit = limit;
 	msql->offset = offset;
-	TSql_make_sql(msql);
 }
 
 void TSql_set_fields(TSql* msql,  char* fields)
@@ -1525,8 +1901,12 @@ void TSql_set_fields(TSql* msql,  char* fields)
 	if (msql->fields) {
 		TString_destroy(&msql->fields);
 	}
-	msql->fields = TString_init(TString_new(), cstring_clone(fields));
-	TSql_make_sql(msql);
+	msql->fields = TString_init(TString_new(), (fields));
+}
+
+void TSql_set_fields_cpy(TSql* msql, char* fields)
+{
+	 TSql_set_fields( msql, cstring_clone(fields));
 }
 
 void TSql_set_table(TSql* msql,  char* table_name)
@@ -1534,14 +1914,17 @@ void TSql_set_table(TSql* msql,  char* table_name)
 	if (msql->table_name) {
 		TString_destroy(&msql->table_name);
 	}
-	msql->table_name = TString_init(TString_new(), cstring_clone(table_name));
-	TSql_make_sql(msql);
+	msql->table_name = TString_init(TString_new(), (table_name));
+}
+
+void TSql_set_table_cpy(TSql* msql, char* table_name)
+{
+	 TSql_set_table(msql, cstring_clone(table_name));
 }
 
 void TSql_clear_filters(TSql* msql)
 {
 	TArray_clean(&msql->filters, (TFVoidPtrHld)TString_destroy);
-	TSql_make_sql(msql);
 }
 
 TString* TSql_sql(TSql* sql)

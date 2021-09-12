@@ -15,6 +15,7 @@ typedef TLint(*TFLintVar)(TVar);
 typedef TVar(*TFVarVarLint)(TVar, TLint);
 typedef void(*TFVoidVar)(TVar);
 typedef TLint(*TFLintVarVar)(TVar, TVar);
+typedef void(*TFVoidVarVarVar)(TVar,TVar,TVar);
 
 
 /*
@@ -53,8 +54,22 @@ char* cstring_from_int(int i);
 char* cstring_from_double(double f);
 char* cstring_new_empty();
 char* cstring_new_from_const(const char* str);
+char cstring_is_great(char* str1, char* str2);
+/*
+                TEvent
+*/
+typedef enum {ON_AFTER_SCROLL} TEventType;
 
-
+ struct TEvent {
+    TVar sender;
+    TVar receiver;
+    TVar params;
+    TEventType type;
+    void(*on_event)(struct TEvent*) ;
+};
+ typedef struct TEvent TEvent;
+ 
+void TEvent_on_event(TEvent* event);
 
 /*
                 TArray
@@ -71,6 +86,7 @@ void TArray_test();
 TArray* TArray_new();
 TArray* TArray_init(TArray* arr);
 TArray* TArray_init_v1(TArray* arr,TLint size);
+TArray* TArray_resize(TArray* arr, TLint size);
 TArray** TArray_clean(TArray** arr_hld, TFVoidPtrHld free_val);
 void TArray_free(TPtrHld arr_hld);
 TLint TArray_count(TArray* arr);
@@ -81,6 +97,53 @@ TVar TArray_item_at(TArray* arr, TLint index);
 TVar TArray_add(TArray* arr, TVar var);
 TArray* TArray_clone(TArray* arr_src,TFVarVar clone_value);
 char TArray_is_equal(TArray* arr1, TArray* arr2, TFCharVarVar is_equal);
+TLint TArray_find(TArray* arr, TVar item, TFCharVarVar is_equal);
+TVar TArray_set_item_at(TArray* arr, TVar item, TLint index);
+void TArray_insert_item_at(TArray* arr, TVar item, TLint index);
+TVar TArray_remove_item_at(TArray* arr, TLint index);
+TVar TArray_add_or_replace(TArray* arr, TVar item, TFCharVarVar is_equal);
+void TArray_sort(TArray* arr, TFCharVarVar is_great);
+
+
+/*
+            TLinkedListEntry
+*/
+
+
+typedef struct TLinkedListEntry TLinkedListEntry;
+struct TLinkedListEntry
+{
+    TVar value;
+    TLinkedListEntry* next_entry;
+};
+
+TLinkedListEntry* TLinkedListEntry_new();
+TLinkedListEntry* TLinkedListEntry_init(TLinkedListEntry* l, TVar value, TLinkedListEntry* next_entry);
+
+
+/*
+            TLinkedList
+*/
+
+typedef struct TLinkedList TLinkedList;
+struct TLinkedList
+{
+    TLinkedListEntry* root;
+    TLinkedListEntry* last;
+};
+
+TLinkedList* TLinkedList_new();
+TLinkedList* TLinkedList_init(TLinkedList* list, TLinkedListEntry* root);
+TLinkedListEntry* TLinkedList_add(TLinkedList* list, TLinkedListEntry* entry);
+TLinkedList** TLinkedList_clean(TLinkedList** list_hld, TFVoidPtrHld free_val);
+void TLinkedList_free(TLinkedList** list_hld);
+void TLinkedList_destroy(TLinkedList** list_hld, TFVoidPtrHld free_val);
+TLinkedListEntry* TLinkedList_find(TLinkedList list, TVar value, TFCharVarVar is_equal);
+TLinkedListEntry* TLinkedList_insert_after(TLinkedList* list,
+    TLinkedListEntry* entry_to_ensert,
+    TLinkedListEntry* entry_to_insert_after);
+TLinkedListEntry* TLinkedList_remove(TLinkedList* list, TLinkedListEntry* entry);
+
 
 /*
             TString
@@ -94,9 +157,10 @@ typedef struct TString TString;
 void TString_test();
 TString* TString_new();
 TString* TString_init(TString* str, char* cstring);
+TString* TString_init_cstring_cpy(TString* str, char* cstring);
 TString* TString_init_with_size(TString* str, TLint size, char* cstring);
 TString* TString_from_cstring(char* cstring);
-TString* TString_clone_cstring(char* cstring);
+TString* TString_from_cstring_cpy(char* cstring);
 TString** TString_clean(TString** str);
 void TString_destroy(TString** str_hld);
 void TString_free(TString** str);
@@ -249,6 +313,20 @@ TSql* TSql_init(TSql* sql,
     TString* w_order_by,
     int limit,
     int offset);
+TSql* TSql_init_with_cstring(TSql* sql,
+    char* table_name,
+    char* fields,
+    char* w_where,
+    char* w_order_by,
+    int limit,
+    int offset);
+TSql* TSql_init_with_cstring_cpy(TSql* sql,
+    char* table_name,
+    char* fields,
+    char* w_where,
+    char* w_order_by,
+    int limit,
+    int offset);
 TSql** TSql_clean(TSql** msql_hld);
 void TSql_free(TSql** msql_hld);
 void TSql_destroy(TSql** msql_hld);
@@ -256,10 +334,15 @@ TSql* TSql_clone(TSql* msql);
 char TSql_is_equal(TSql* msql1, TSql* msql2);
 TString* TSql_make_sql(TSql* msql);
 void TSql_add_filter(TSql* msql, enum logic_op log_oper,  char* filter);
+void TSql_add_filter_cpy(TSql* msql, logic_op log_oper, char* filter);
 void TSql_set_where(TSql* msql,  char* w_where);
+void TSql_set_where_cpy(TSql* msql, char* w_where);
 void TSql_set_order(TSql* msql,  char* w_order);
+void TSql_set_order_cpy(TSql* msql, char* w_order);
 void TSql_set_limit(TSql* msql, int limit, int offset);
 void TSql_set_fields(TSql* msql,  char* fields);
+void TSql_set_fields_cpy(TSql* msql, char* fields);
 void TSql_set_table(TSql* msql,  char* table_name);
+void TSql_set_table_cpy(TSql* msql, char* table_name);
 void TSql_clear_filters(TSql* msql);
 TString* TSql_sql(TSql* sql);
