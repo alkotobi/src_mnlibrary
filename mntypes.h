@@ -38,13 +38,13 @@ void print_magenta(char* message);
 void print_cyan(char* message);
 char test(char bool_res, char* message);
 char test_v1(char bool_res);
-char do_test();
+char do_test(void);
 /*
                 cstring
 */
 
 
-char cstring_test();
+char cstring_test(void);
 char* cstring_new(TLint size);
 TLint cstring_count(char* str);
 char* cstring_clone(char* str_src);
@@ -52,7 +52,7 @@ void cstring_free(TPtrHld str_hld);
 char cstring_is_equal(char* str1, char* str2);
 char* cstring_from_int(int i);
 char* cstring_from_double(double f);
-char* cstring_new_empty();
+char* cstring_new_empty(void);
 char* cstring_new_from_const(const char* str);
 char cstring_is_great(char* str1, char* str2);
 /*
@@ -82,8 +82,8 @@ struct TArray {
 };
 typedef struct TArray TArray;
 #define TARRAY_DEFAULT_SIZE 250
-void TArray_test();
-TArray* TArray_new();
+void TArray_test(void);
+TArray* TArray_new(void);
 TArray* TArray_init(TArray* arr);
 TArray* TArray_init_v1(TArray* arr,TLint size);
 TArray* TArray_resize(TArray* arr, TLint size);
@@ -117,7 +117,7 @@ struct TLinkedListEntry
     TLinkedListEntry* next_entry;
 };
 
-TLinkedListEntry* TLinkedListEntry_new();
+TLinkedListEntry* TLinkedListEntry_new(void);
 TLinkedListEntry* TLinkedListEntry_init(TLinkedListEntry* l, TVar value, TLinkedListEntry* next_entry);
 
 
@@ -132,7 +132,7 @@ struct TLinkedList
     TLinkedListEntry* last;
 };
 
-TLinkedList* TLinkedList_new();
+TLinkedList* TLinkedList_new(void);
 TLinkedList* TLinkedList_init(TLinkedList* list, TLinkedListEntry* root);
 TLinkedListEntry* TLinkedList_add(TLinkedList* list, TLinkedListEntry* entry);
 TLinkedList** TLinkedList_clean(TLinkedList** list_hld, TFVoidPtrHld free_val);
@@ -154,8 +154,8 @@ struct TString {
     char* cstring;
 };
 typedef struct TString TString;
-void TString_test();
-TString* TString_new();
+void TString_test(void);
+TString* TString_new(void);
 TString* TString_init(TString* str, char* cstring);
 TString* TString_init_cstring_cpy(TString* str, char* cstring);
 TString* TString_init_with_size(TString* str, TLint size, char* cstring);
@@ -183,8 +183,8 @@ TString* TString_from_double(double f);
 
 
 typedef TArray TStringList;
-void TStringList_test();
-TStringList* TStringList_new();
+void TStringList_test(void);
+TStringList* TStringList_new(void);
 TStringList* TStringList_init(TStringList* strs);
 TLint TStringList_char_count(TStringList* str_l);
 TString* TStringList_text(TStringList* str_l,char* str_end);
@@ -211,8 +211,8 @@ struct  TVariant
     TTypes value_type;
 };
 typedef struct TVariant TVariant;
-void TVariant_test();
-TVariant* TVariant_new();
+void TVariant_test(void);
+TVariant* TVariant_new(void);
 TVariant* TVariant_init(TVariant* var, TVar value, TTypes value_type);
 TVariant* TVariant_init_int(TVariant* var, int i);
 TVariant* TVariant_init_cstring(TVariant* var, char* str);
@@ -243,8 +243,8 @@ struct TField
     char order;
 };
 typedef struct TField TField;
-void TField_test();
-TField* TField_new();
+void TField_test(void);
+TField* TField_new(void);
 TField* TField_init(TField* fld, TVariant* var, char is_generated,char* name);
 TField* TField_init_int(TField* fld, char* name,int val);
 TField* TField_init_double(TField* fld, char* name, double val);
@@ -277,9 +277,9 @@ struct TFieldList {
     char is_new;
     char is_deleted;
 };
-void TFieldList_test();
+void TFieldList_test(void);
 typedef struct TFieldList TFieldList;
-TFieldList* TFieldList_new();
+TFieldList* TFieldList_new(void);
 TFieldList* TFieldList_init(TFieldList* flds);
 void TFieldList_set_changed(TFieldList* flds, char is_changed);
 char TFieldList_is_changed(TFieldList* flds);
@@ -312,8 +312,8 @@ struct TSql {
 };
 typedef  enum logic_op logic_op  ;
 enum logic_op { AND, OR };
-void TSql_test();
-TSql* TSql_new();
+void TSql_test(void);
+TSql* TSql_new(void);
 TSql* TSql_init(TSql* sql,
     TString* table_name,
     TString* fields,
